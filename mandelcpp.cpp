@@ -1,11 +1,8 @@
 #include <iostream>
-#include <Windows.h>
 #include <string>
 #define NDEBUG 0;
 #include "freeglut.h"
-#include <math.h>
-
-/*LIST OF FUNCTIONS*/
+#include <cmath>
 
 /*Keyboard Control:
 	Program is event-driven, so stuff is only re-drawn/ computed when keys are pressed.
@@ -37,7 +34,7 @@ void RenderSceneCB(); //to draw the new image
 
 //The following functions are used to generate the modelbrot set and the corresponding color values
 double mandel(double real, double imaginary); //returns the count of how long it took to become unbounded at that point
-int get_color(int x, int y); //gets the color at a specific point in the window by converting x and y into the mandelbrot coordinates. The color will depend on the color mode set. 
+int get_color(int x, int y); //gets the color at a specific point in the window by converting x and y into the mandelbrot coordinates. The color will depend on the color mode set.
 int hsv_to_rgb(double h); //used to convert a hue value to an RGB value (saturation and value are set to 100%)
 
 //other functions
@@ -145,22 +142,23 @@ void keyPressed(unsigned char key, int x, int y) {
 void keySpecial(int key, int x, int y) {
 	//panning does not re-render - simply adds a block border where new mandelbrot will go
 	if (key == GLUT_KEY_LEFT) {
-		real_corner -= abs(step_size * 20);
+		real_corner -= std::abs(step_size * 20.0);
+		std::cout << std::abs(1.1);
 		refreshAndRenderPan(LEFT, 20);
 
 	}
 	else if (key == GLUT_KEY_RIGHT) {
-		real_corner += abs(step_size * 20);
+		real_corner += std::abs(step_size * 20.0);
 		refreshAndRenderPan(RIGHT, 20);
 
 	}
 	else if (key == GLUT_KEY_DOWN) {
-		im_corner -= abs(step_size * 20);
+		im_corner -= std::abs(step_size * 20.0);
 		refreshAndRenderPan(DOWN, 20);
 
 	}
 	else if (key == GLUT_KEY_UP) {
-		im_corner += abs(step_size * 20);
+		im_corner += std::abs(step_size * 20.0);
 		refreshAndRenderPan(UP, 20);
 
 	}
@@ -234,7 +232,7 @@ void resetToDefaultCoordinates() {
 
 //draws the mandelbrot to the pixel array
 void drawMandelbrotToPixelArr() {
-	max_count = round(sqrt(abs(2 * sqrt(abs(1 - sqrt(5 * 1 / step_size)))))*66.5);
+	max_count = round(sqrt(std::abs(2 * sqrt(std::abs(1 - sqrt(5 * 1 / step_size)))))*66.5);
 
 	char* pixel = (char*)malloc(sizeof(char)*width*height * 3);
 	for (int i = 0; i < width; i++){
@@ -269,7 +267,7 @@ void drawZoomToPixelArr(double change) {
 				//zoom in
 				//get corresponding array locations for the old and new
 				int new_array_loc = 3 * (j*(width)+i);
-				int old_i = round(((i / change) + x_offset) + round(change / 2) - 1); //+ 
+				int old_i = round(((i / change) + x_offset) + round(change / 2) - 1); //+
 				int old_j = round(((j / change) + y_offset) + round(change / 2) - 1);
 				int old_array_loc = 3 * (old_j*(width)+old_i);
 				if (old_array_loc > width*height * 3) old_array_loc = 0;
@@ -442,7 +440,7 @@ int hsv_to_rgb(double h) {
 	double v = 1.0;
 	double c = v*s;
 
-	double x = c*(1 - abs(fmod((h / 60), 2) - 1));
+	double x = c*(1 - std::abs(fmod((h / 60), 2) - 1));
 	double m = v - c;
 	double r_prime, g_prime, b_prime;
 
@@ -476,6 +474,3 @@ int hsv_to_rgb(double h) {
 	int b = (int)((b_prime + m) *255.0) & 255;
 	return (r << 16) + (g << 8) + (b);
 }
-
-
-
