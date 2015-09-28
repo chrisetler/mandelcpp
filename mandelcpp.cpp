@@ -3,6 +3,7 @@
 #define NDEBUG 0;
 #include "freeglut.h"
 #include <cmath>
+#include <omp.h>
 
 /*Keyboard Control:
 	Program is event-driven, so stuff is only re-drawn/ computed when keys are pressed.
@@ -235,6 +236,7 @@ void drawMandelbrotToPixelArr() {
 	max_count = round(sqrt(std::abs(2 * sqrt(std::abs(1 - sqrt(5 * 1 / step_size)))))*66.5);
 
 	char* pixel = (char*)malloc(sizeof(char)*width*height * 3);
+	#pragma omp parallel for
 	for (int i = 0; i < width; i++){
 		for (int j = 0; j < height; j++) {
 			int color = get_color(i, j);
