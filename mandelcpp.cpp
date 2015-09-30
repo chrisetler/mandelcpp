@@ -125,8 +125,8 @@ void keyPressed(unsigned char key, int x, int y) {
 		refreshAndRenderZoom(1 / 0.9);
 	}
 	else if (key == '-') {
-		step_size *= 1.1;
-		refreshAndRenderZoom(1 / 1.1);
+		step_size *= 1/.9;
+		refreshAndRenderZoom(.9);
 	}
 	//refresh -- render the MandelBrot
 	else if (key == ' ') {
@@ -144,7 +144,6 @@ void keySpecial(int key, int x, int y) {
 	//panning does not re-render - simply adds a block border where new mandelbrot will go
 	if (key == GLUT_KEY_LEFT) {
 		real_corner -= std::abs(step_size * 20.0);
-		std::cout << std::abs(1.1);
 		refreshAndRenderPan(LEFT, 20);
 
 	}
@@ -262,15 +261,16 @@ void drawZoomToPixelArr(double change) {
 	//For zooming in:
 	if (change >= 1) {
 		/*Get the offsets needed to zoom around the center of the old image*/
-		int x_offset = round((width*(1 - 1 / change) / 2.0));
-		int y_offset = round((height*(1 - 1 / change) / 2.0));
+		double x_offset = ((width*(1 - 1 / change) / 2.0));
+		double y_offset = ((height*(1 - 1 / change) / 2.0));
+		#pragma omp parallel for
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
 				//zoom in
 				//get corresponding array locations for the old and new
 				int new_array_loc = 3 * (j*(width)+i);
-				int old_i = round(((i / change) + x_offset) + round(change / 2) - 1); //+
-				int old_j = round(((j / change) + y_offset) + round(change / 2) - 1);
+				int old_i = round(((i / change) + x_offset)   ); //+
+				int old_j = round(((j / change) + y_offset)  );
 				int old_array_loc = 3 * (old_j*(width)+old_i);
 				if (old_array_loc > width*height * 3) old_array_loc = 0;
 				new_array[new_array_loc] = pixel[old_array_loc];
@@ -283,11 +283,12 @@ void drawZoomToPixelArr(double change) {
 
 	//For zooming out:
 	else {
+		#pragma omp parallel for
 		for (int i = 0; i < width; i++) {
 			for (int j = 0; j < height; j++) {
 				/*Zoom out. Center the current data and add a black background around it*/
-				int x_offset = round(width*(1 - change) / 2);
-				int y_offset = round(height*(1 - change) / 2);
+				double x_offset = (width*(1 - change) / 2);
+				double y_offset = (height*(1 - change) / 2);
 				//get the corresponding array locations
 				int new_loc = 3 * (j*width + i);
 				if (i < x_offset || i >= (width - x_offset) || j < y_offset || j >= (height - y_offset)) {
@@ -317,6 +318,7 @@ void drawPanToPixelArr(int direction, int offset) {
 
 	char* new_array = (char*)malloc(sizeof(char)*width*height * 3);
 	char* pixel = *pixel_loc;
+	#pragma omp parallel for
 	for (int i = 0; i < width; i++) {
 		for (int j = 0; j < height; j++) {
 			int old_j = j;
