@@ -1,9 +1,11 @@
 #include <iostream>
 #include <string>
-#define NDEBUG 0;
+#define NDEBUG 0
 #include "freeglut.h"
 #include <cmath>
 #include <omp.h>
+#define ZOOM_IN 1
+#define ZOOM_OUT -1
 
 /*Keyboard Control:
 	Program is event-driven, so stuff is only re-drawn/ computed when keys are pressed.
@@ -14,7 +16,7 @@ void keySpecial(int key, int x, int y);
 
 /*The following functions redraw the screen. Each relies on a separte function to create the new pixel mapping*/
 void refreshAndRenderMandelbrot();
-void refreshAndRenderZoom(double zoomAmount);
+void refreshAndRenderZoom(double zoomAmount, int direction);
 void refreshAndRenderPan(int direction, int offset);
 
 /*These functions work as a backend to the above functions to create the new pixel array that is rendered in each*/
@@ -24,7 +26,7 @@ void refreshAndRenderPan(int direction, int offset);
 	So whatever is stored to the pixel location by these functions must be compatible with that
 */
 void drawMandelbrotToPixelArr();
-void drawZoomToPixelArr(double change);
+void drawZoomToPixelArr(double change, int direction);
 void drawPanToPixelArr(int direction, int offset);
 
 /*A new refresh and render function should be set up with the following functions in order:*/
@@ -50,6 +52,10 @@ int width = 640;
 
 /*When ever the screen is updated, the new pixels will be stored here, and then drawn*/
 char** pixel_loc = (char**)malloc(sizeof(char*));
+
+/*Variables used for zooming algorithm*/
+char** prezoom_pixel_loc = (char**)malloc(sizeof(char*));
+int zoomcount = 0;
 
 //Directionals for panning
 const int UP = 0;
@@ -122,11 +128,11 @@ void keyPressed(unsigned char key, int x, int y) {
 	//zooming in an out performs a raster zoom -- much quicker than re-rendering but still too slow when 1080p
 	else if (key == '+') {
 		step_size *= .9;
-		refreshAndRenderZoom(1 / 0.9);
+		refreshAndRenderZoom(1 / 0.9, ZOOM_IN);
 	}
 	else if (key == '-') {
 		step_size *= 1/.9;
-		refreshAndRenderZoom(.9);
+		refreshAndRenderZoom(1/ .9, ZOOM_OUT);
 	}
 	//refresh -- render the MandelBrot
 	else if (key == ' ') {
@@ -167,6 +173,8 @@ void keySpecial(int key, int x, int y) {
 
 //Recomputes the mandelbrot and renders it to the screen
 void refreshAndRenderMandelbrot() {
+	//reset zoom count
+	zoomcount = 0;
 	updateViewportIfScreenChanged();
 	clearBuffer();
 	drawMandelbrotToPixelArr();
@@ -174,15 +182,17 @@ void refreshAndRenderMandelbrot() {
 }
 
 //Zooms the image in or out and renders it to the screen
-void refreshAndRenderZoom(double zoomAmount) {
+void refreshAndRenderZoom(double zoomAmount, int direction) {
 	updateViewportIfScreenChanged();
 	clearBuffer();
-	drawZoomToPixelArr(zoomAmount);
+	drawZoomToPixelArr(zoomAmount, direction);
 	RenderSceneCB();
 }
 
 //Pans the image and renders it too the screen
 void refreshAndRenderPan(int direction, int offset) {
+	//reset zoom count
+	zoomcount = 0;
 	updateViewportIfScreenChanged();
 	clearBuffer();
 	drawPanToPixelArr(direction, offset);
@@ -249,14 +259,20 @@ void drawMandelbrotToPixelArr() {
 }
 
 //zoom by change
-//change > 1 means zoom in
-//change < 1 means zoom out
 //does so by creating a bitmap from the old pixels rather than re rendering -- makes it pixelated but at least gives a preview
 //"zoomed" pixels are saved to the pixel array
-void drawZoomToPixelArr(double change) {
+void drawZoomToPixelArr(double change, int direction) {
 	//create a double array from the pixel data
 	char* new_array = (char*)malloc(sizeof(char)*width*height * 3);
-	char* pixel = *pixel_loc;
+	/*Stuff for smarter zooming*/
+	if(zoomcount == 0) {
+		*prezoom_pixel_loc = *pixel_loc;
+	}
+	zoomcount+=direction;
+	change = pow(change,zoomcount);
+
+	std::cout << "Zoom count: " << zoomcount << " Change: " << change <<  std::endl;
+	char* pixel = *prezoom_pixel_loc;
 
 	//For zooming in:
 	if (change >= 1) {
@@ -310,7 +326,7 @@ void drawZoomToPixelArr(double change) {
 
 	//Set the pixel location to the new pixels
 	*pixel_loc = new_array;
-	free(pixel);
+	//free(pixel);
 }
 
 /*pan over without re computing fractal. */
@@ -412,21 +428,21 @@ int get_color(int x, int y) {
 	}
 	else if (color_mode == 1) {
 		//non-hsv
-		//return color;
+		return color;
 		//hsv
 		int color_rgb = hsv_to_rgb(fmod((bound*360.0 / (double)(max_count)+180), 360));
 		return color_rgb;
 	}
 	else if (color_mode == 2) {
 		//non-hsv
-		//return color << 16;
+		return color << 16;
 		//hsv
 		int color_rgb = hsv_to_rgb(fmod((bound*360.0 / (double)(max_count)+240), 360));
 		return color_rgb;
 	}
 	else if (color_mode == 3) {
 		//non-hsv
-		//return color <<8;
+		return color <<8;
 		//hsv
 		int color_rgb = hsv_to_rgb((bound*360.0 / (double)(max_count)+60));
 		return color_rgb;
