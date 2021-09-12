@@ -1,7 +1,11 @@
 #include <iostream>
 #include <string>
 #define NDEBUG 0
-#include "freeglut.h"
+
+//depending on your OS, you may need to use one of these or the other.
+// #include "freeglut.h"
+#include <GL/glut.h>
+
 #include <cmath>
 #include <omp.h>
 #define ZOOM_IN 1
